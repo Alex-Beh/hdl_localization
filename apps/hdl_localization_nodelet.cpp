@@ -119,7 +119,7 @@ private:
       return ndt;
     } else if(reg_method.find("NDT_CUDA") != std::string::npos) {
       RCLCPP_INFO(get_logger(), "NDT_CUDA is selected");
-      boost::shared_ptr<fast_gicp::NDTCuda<PointT, PointT>> ndt(new fast_gicp::NDTCuda<PointT, PointT>);
+      std::shared_ptr<fast_gicp::NDTCuda<PointT, PointT>> ndt(new fast_gicp::NDTCuda<PointT, PointT>);
       ndt->setResolution(ndt_resolution);
 
       if(reg_method.find("D2D") != std::string::npos) {
@@ -150,7 +150,7 @@ private:
   void initialize_params() {
     // intialize scan matching method
     double downsample_resolution = declare_parameter<double>("downsample_resolution", 0.1);
-    boost::shared_ptr<pcl::VoxelGrid<PointT>> voxelgrid(new pcl::VoxelGrid<PointT>());
+    std::shared_ptr<pcl::VoxelGrid<PointT>> voxelgrid(new pcl::VoxelGrid<PointT>());
     voxelgrid->setLeafSize(downsample_resolution, downsample_resolution, downsample_resolution);
     downsample_filter = voxelgrid;
 
@@ -190,6 +190,7 @@ private:
    * @param points_msg
    */
   void points_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr points_msg) {
+    std::cout<<"points_callback"<<std::endl;
     std::lock_guard<std::mutex> estimator_lock(pose_estimator_mutex);
     if (!pose_estimator) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5.0, "waiting for initial pose input!!");
@@ -211,7 +212,6 @@ private:
     }
 
     // transform pointcloud into odom_child_frame_id
-    std::string tfError;
     pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
     if (!pcl_ros::transformPointCloud(odom_child_frame_id, *pcl_cloud, *cloud, *tf_buffer)) {
         RCLCPP_ERROR(get_logger(), "point cloud cannot be transformed into target frame!!");
@@ -265,7 +265,9 @@ private:
     }
 
     // correct
+    std::cout<<"correct_start"<<std::endl;
     auto aligned = pose_estimator->correct(stamp, filtered);
+    std::cout<<"correct_end"<<std::endl;
 
     if(aligned_pub->get_subscription_count()) {
       aligned->header.frame_id = "map";
@@ -279,6 +281,7 @@ private:
       publish_scan_matching_status(points_msg->header, aligned);
     }
 
+    std::cout<<"publish_odometry"<<std::endl;
     publish_odometry(points_msg->header.stamp, pose_estimator->matrix());
   }
 
@@ -300,9 +303,19 @@ private:
       pcl::toROSMsg(*globalmap, req->global_map);
 
       auto result = set_global_map_service->async_send_request(req);
-      if (rclcpp::spin_until_future_complete(rclcpp::Node::SharedPtr(this), result) != rclcpp::FutureReturnCode::SUCCESS) {
-        RCLCPP_ERROR(get_logger(), "Failed to call SetGlobalMap service");
-      }
+      
+      /*      
+      TODO: an executor will be created in rclcpp::spin_until_future_complete. which will cause the following issue:
+
+      [component_container-2] terminate called after throwing an instance of 'std::runtime_error'
+      [component_container-2]   what():  Node '/hdl_localization_nodelet' has already been added to an executor.
+
+      reference: https://codeantenna.com/a/TpNjJ2EDx0
+      */ 
+
+      // if (rclcpp::spin_until_future_complete(rclcpp::Node::SharedPtr(this), result) != rclcpp::FutureReturnCode::SUCCESS) {
+      //   RCLCPP_ERROR(get_logger(), "Failed to call SetGlobalMap service");
+      // }
     }
   }
 

@@ -20,6 +20,7 @@ find_package(nav_msgs REQUIRED)
 find_package(ndt_omp REQUIRED)
 find_package(fast_gicp REQUIRED)
 find_package(hdl_global_localization REQUIRED)
+find_package(std_srvs REQUIRED)
 
 find_package(PCL 1.7 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
@@ -47,6 +48,11 @@ DEPENDENCIES
 )
 ament_export_dependencies(rosidl_default_runtime)
 
+rosidl_get_typesupport_target(hdl_localization_target
+  ${PROJECT_NAME}
+  rosidl_typesupport_cpp
+)
+
 ###########
 ## Build ##
 ###########
@@ -70,14 +76,14 @@ ament_target_dependencies(${PROJECT_NAME}_lib
   ndt_omp
   fast_gicp
   hdl_global_localization
-)
-rosidl_target_interfaces(${PROJECT_NAME}_lib
-  ${PROJECT_NAME}
-  rosidl_typesupport_cpp
+  std_srvs
 )
 target_include_directories(${PROJECT_NAME}_lib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(${PROJECT_NAME}_lib
+  "${hdl_localization_target}"
 )
 rclcpp_components_register_node(${PROJECT_NAME}_lib
   PLUGIN "${PROJECT_NAME}::HdlLocalizationNodelet"
@@ -100,6 +106,7 @@ install(
   DIRECTORY
     launch
     rviz
+    data
   DESTINATION share/${PROJECT_NAME}
 )
 

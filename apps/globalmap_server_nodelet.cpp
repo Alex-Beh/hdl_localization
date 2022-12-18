@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/filters/voxel_grid.h>
@@ -66,15 +67,15 @@ private:
     globalmap_pub_timer.reset();
   }
 
-  void map_update_callback(const std_msgs::String &msg){
-    ROS_INFO_STREAM("Received map request, map path : "<< msg.data);
+  void map_update_callback(const std_msgs::msg::String &msg){
+    RCLCPP_INFO_STREAM(get_logger(), "Received map request, map path : "<< msg.data);
     std::string globalmap_pcd = msg.data;
     globalmap.reset(new pcl::PointCloud<PointT>());
     pcl::io::loadPCDFile(globalmap_pcd, *globalmap);
     globalmap->header.frame_id = "map";
 
     // downsample globalmap
-    double downsample_resolution = private_nh.param<double>("downsample_resolution", 0.1);
+    double downsample_resolution = declare_parameter<double>("downsample_resolution", 0.1);
     boost::shared_ptr<pcl::VoxelGrid<PointT>> voxelgrid(new pcl::VoxelGrid<PointT>());
     voxelgrid->setLeafSize(downsample_resolution, downsample_resolution, downsample_resolution);
     voxelgrid->setInputCloud(globalmap);
@@ -83,7 +84,10 @@ private:
     voxelgrid->filter(*filtered);
 
     globalmap = filtered;
-    globalmap_pub.publish(globalmap);
+
+    sensor_msgs::msg::PointCloud2 globalmap_msg;
+    pcl::toROSMsg(*globalmap, globalmap_msg);
+    globalmap_pub->publish(globalmap_msg);
   }
 
 private:
