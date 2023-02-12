@@ -42,12 +42,27 @@ public:
 private:
   void initialize_params() {
     // read globalmap from a pcd file
-    std::string globalmap_pcd = private_nh.param<std::string>("globalmap_pcd", "");
+    std::string globalmap_file = private_nh.param<std::string>("globalmap_file", "");
+
+    std::vector<std::string> strs;
+    boost.split(strs, globalmap_file,boost::is_any_of("."));
+    std::string extension = strs[strs.size()-1];
+
     globalmap.reset(new pcl::PointCloud<PointT>());
-    pcl::io::loadPCDFile(globalmap_pcd, *globalmap);
+
+    if (extension == "pcd"){
+      pcl::io::loadPCDFile(globalmap_file, *globalmap);
+    }
+    elif (extension == "ply"){
+      pcl::io::loadPLYFile(globalmap_file, *globalmap);
+    }
+    else{
+      ROS_ERROR("The extension of globalmap should be either .pcd or .ply ...");
+    }
+
     globalmap->header.frame_id = "map";
 
-    std::ifstream utm_file(globalmap_pcd + ".utm");
+    std::ifstream utm_file(globalmap_file + ".utm");
     if (utm_file.is_open() && private_nh.param<bool>("convert_utm_to_local", true)) {
       double utm_easting;
       double utm_northing;
@@ -78,9 +93,23 @@ private:
 
   void map_update_callback(const std_msgs::String &msg){
     ROS_INFO_STREAM("Received map request, map path : "<< msg.data);
-    std::string globalmap_pcd = msg.data;
+    std::string globalmap_file = msg.data;
     globalmap.reset(new pcl::PointCloud<PointT>());
-    pcl::io::loadPCDFile(globalmap_pcd, *globalmap);
+
+    std::vector<std::string> strs;
+    boost.split(strs, globalmap_file,boost::is_any_of("."));
+    std::string extension = strs[strs.size()-1];
+
+    if (extension == "pcd"){
+      pcl::io::loadPCDFile(globalmap_file, *globalmap);
+    }
+    elif (extension == "ply"){
+      pcl::io::loadPLYFile(globalmap_file, *globalmap);
+    }
+    else{
+      ROS_ERROR("The extension of globalmap should be either .pcd or .ply ...");
+    }
+
     globalmap->header.frame_id = "map";
 
     // downsample globalmap
