@@ -10,7 +10,6 @@ namespace hdl_localization {
 /**
  * @brief constructor
  * @param registration        registration method
- * @param stamp               timestamp
  * @param pos                 initial position
  * @param quat                initial orientation
  * @param cool_time_duration  during "cool time", prediction is not performed
@@ -38,7 +37,6 @@ PoseEstimator::PoseEstimator(pcl::Registration<PointT, PointT>::Ptr& registratio
   mean.middleRows(0, 3) = pos;
   mean.middleRows(3, 3).setZero();
   mean.middleRows(6, 4) = Eigen::Vector4f(quat.w(), quat.x(), quat.y(), quat.z()).normalized();
-  ;
   mean.middleRows(10, 3).setZero();
   mean.middleRows(13, 3).setZero();
 

@@ -30,7 +30,6 @@ public:
   /**
    * @brief constructor
    * @param registration        registration method
-   * @param stamp               timestamp
    * @param pos                 initial position
    * @param quat                initial orientation
    * @param cool_time_duration  during "cool time", prediction is not performed
