@@ -167,7 +167,6 @@ private:
     if (specify_init_pose) {
       RCLCPP_INFO(get_logger(), "initialize pose estimator with specified parameters!!");
       pose_estimator.reset(new hdl_localization::PoseEstimator(registration,
-        get_clock()->now(),
         Eigen::Vector3f(declare_parameter<double>("init_pos_x", 0.0), declare_parameter<double>("init_pos_y", 0.0), declare_parameter<double>("init_pos_z", 0.0)),
         Eigen::Quaternionf(declare_parameter<double>("init_ori_w", 1.0), declare_parameter<double>("init_ori_x", 0.0), declare_parameter<double>("init_ori_y", 0.0), declare_parameter<double>("init_ori_z", 0.0)),
         cool_time_duration
@@ -190,12 +189,6 @@ private:
    * @param points_msg
    */
   void points_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr points_msg) {
-    std::cout<<"points_callback"<<std::endl;
-    std::lock_guard<std::mutex> estimator_lock(pose_estimator_mutex);
-    if (!pose_estimator) {
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5.0, "waiting for initial pose input!!");
-      return;
-    }
 
     if (!globalmap) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5.0, "globalmap has not been received!!");
@@ -223,6 +216,12 @@ private:
 
     if (relocalizing) {
       delta_estimater->add_frame(filtered);
+    }
+
+    std::lock_guard<std::mutex> estimator_lock(pose_estimator_mutex);
+    if (!pose_estimator) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5.0, "waiting for initial pose input!!");
+      return;
     }
 
     Eigen::Matrix4f before = pose_estimator->matrix();
@@ -265,9 +264,7 @@ private:
     }
 
     // correct
-    std::cout<<"correct_start"<<std::endl;
     auto aligned = pose_estimator->correct(stamp, filtered);
-    std::cout<<"correct_end"<<std::endl;
 
     if(aligned_pub->get_subscription_count()) {
       aligned->header.frame_id = "map";
@@ -281,7 +278,6 @@ private:
       publish_scan_matching_status(points_msg->header, aligned);
     }
 
-    std::cout<<"publish_odometry"<<std::endl;
     publish_odometry(points_msg->header.stamp, pose_estimator->matrix());
   }
 
@@ -365,7 +361,6 @@ private:
     std::lock_guard<std::mutex> lock(pose_estimator_mutex);
     pose_estimator.reset(new hdl_localization::PoseEstimator(
       registration,
-      get_clock()->now(),
       pose.translation(),
       Eigen::Quaternionf(pose.linear()),
       cool_time_duration));
@@ -387,7 +382,6 @@ private:
     pose_estimator.reset(
           new hdl_localization::PoseEstimator(
             registration,
-            get_clock()->now(),
             Eigen::Vector3f(p.x, p.y, p.z),
             Eigen::Quaternionf(q.w, q.x, q.y, q.z),
             cool_time_duration)

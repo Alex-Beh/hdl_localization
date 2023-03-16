@@ -47,34 +47,35 @@ def generate_launch_description():
         name='lidar_tf',
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0','0','0','0','0','0','1','odom','velodyne']
+        arguments=['0', '0', '1.0001', '0', '0', '0',
+                   '1', 'base_footprint', 'ouster_data']
     )
 
     hdl_global_map_server = Node(
-                package='hdl_localization',
-                # plugin='hdl_localization::GlobalmapServerNodelet',
+        package='hdl_localization',
+        # plugin='hdl_localization::GlobalmapServerNodelet',
                 executable='hdl_localization_map_server',
                 name='hdl_global_map_server',
                 parameters=[{
                             'use_sim_time': True,
-                            'globalmap_pcd': os.path.join(get_package_share_directory("hdl_localization"), 'data', 'map.pcd'),
+                            'globalmap_pcd': os.path.join(get_package_share_directory("hdl_localization"), 'data', 'TE_xyz_compressed_10.pcd'),
                             'convert_utm_to_local': False,
                             'downsample_resolution': 0.1}],
-                output = "screen"
-                )
-    
+                output="screen"
+    )
+
     hdl_localization = Node(
-            package='hdl_localization',
-            # plugin='hdl_localization::HdlLocalizationNodelet',
-            executable='hdl_localization_node',
-            name='hdl_localization',
-            parameters=[{
+        package='hdl_localization',
+        # plugin='hdl_localization::HdlLocalizationNodelet',
+        executable='hdl_localization_node',
+        name='hdl_localization',
+        parameters=[{
                 'use_sim_time': True,
                 # odometry frame_id
-                'odom_child_frame_id': "velodyne",
+                'odom_child_frame_id': "base_footprint",
                 # imu settings
                 # during "cool_time", imu inputs are ignored
-                'use_imu': False,
+                'use_imu': True,
                 'invert_acc': False,
                 'invert_gyro': False,
                 'cool_time_duration': 2.0,
@@ -100,12 +101,12 @@ def generate_launch_description():
                 'init_ori_y': 0.0,
                 'init_ori_z': 0.0,
                 'use_global_localization': True}],
-            remappings=[('/velodyne_points', '/velodyne_points'),
-                        ('/gpsimu_driver/imu_data', '/gpsimu_driver/imu_data')],
-            prefix=["gdbserver localhost:3000"],
-            output="screen",
-            emulate_tty=True
-            )
+        remappings=[('/velodyne_points', '/points'), ('/odom',
+                                                      '/hdl_odom'), ('/gpsimu_driver/imu_data', '/imu/data')],
+        # prefix=["gdbserver localhost:3000"],
+        output="screen",
+        # emulate_tty=True
+    )
 
     launch_description = LaunchDescription()
 
