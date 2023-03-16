@@ -1,8 +1,23 @@
 cmake_minimum_required(VERSION 3.5)
 project(hdl_localization)
 
+<<<<<<< HEAD
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
+=======
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+  add_definitions(-std=c++11)
+  set(CMAKE_CXX_FLAGS "-std=c++11")
+else()
+	# -mavx causes a lot of errors!!
+  if("$ENV{ROS_DISTRO}" STRGREATER "melodic")
+    add_definitions(-std=c++17 -msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
+    set(CMAKE_CXX_FLAGS "-std=c++17 -msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
+  else()
+    add_definitions(-std=c++11 -msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
+    set(CMAKE_CXX_FLAGS "-std=c++11 -msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
+  endif()
+>>>>>>> 8ba183ca49a1d6b290d965d3852793287b31a9f4
 endif()
 
 find_package(ament_cmake REQUIRED)
